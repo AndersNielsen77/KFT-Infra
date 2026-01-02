@@ -1,0 +1,71 @@
+---
+# Unifi Controller role - Fixes Java issue and ensures Unifi is running
+
+- name: Add Unifi GPG key
+  apt_key:
+    url: https://dl.ui.com/unifi/unifi-repo.gpg
+    state: present
+
+- name: Add Unifi repository
+  apt_repository:
+    repo: "deb https://www.ui.com/downloads/unifi/debian stable ubiquiti"
+    state: present
+    filename: 100-ubnt-unifi
+
+- name: Install OpenJDK 17 (required for Unifi)
+  apt:
+    name:
+      - openjdk-17-jre-headless
+      - ca-certificates-java
+    state: present
+    update_cache: yes
+
+- name: Set Java 17 as default
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+
+- name: Install/Update Unifi Controller
+  apt:
+    name: unifi
+    state: present
+    update_cache: yes
+
+- name: Ensure Unifi service is enabled and started
+  systemd:
+    name: unifi
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Wait for Unifi to be ready
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ unifi_port | default(8443) }}"
+    delay: 30
+    timeout: 180
+
+- name: Install Tailscale (if not present)
+  block:
+    - name: Add Tailscale GPG key
+      apt_key:
+        url: https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg
+        state: present
+
+    - name: Add Tailscale repository
+      apt_repository:
+        repo: "deb https://pkgs.tailscale.com/stable/debian bookworm main"
+        state: present
+        filename: tailscale
+
+    - name: Install Tailscale
+      apt:
+        name: tailscale
+        state: present
+        update_cache: yes
+
+    - name: Enable Tailscale service
+      systemd:
+        name: tailscaled
+        enabled: yes
+        state: started

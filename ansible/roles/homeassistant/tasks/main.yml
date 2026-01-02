@@ -1,0 +1,58 @@
+---
+# Home Assistant role - Docker-based installation
+
+- name: Install required packages
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+      - python3-docker
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is running
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Create Home Assistant config volume directory
+  file:
+    path: /var/lib/docker/volumes/hass_config/_data
+    state: directory
+    mode: '0755'
+
+- name: Ensure Home Assistant container is running
+  community.docker.docker_container:
+    name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    privileged: yes
+    volumes:
+      - hass_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    devices: "{{ ha_devices | default([]) }}"
+    env:
+      TZ: "Europe/Copenhagen"
+
+- name: Ensure Portainer container is running
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer-ce:latest
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "8000:8000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+- name: Wait for Home Assistant to be ready
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ ha_port | default(8123) }}"
+    delay: 10
+    timeout: 120

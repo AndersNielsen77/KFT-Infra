@@ -1,0 +1,37 @@
+---
+# Main playbook - applies all configurations
+
+- name: Apply common configuration to all containers
+  hosts: containers
+  roles:
+    - common
+
+- name: Configure Home Assistant
+  hosts: homeassistant
+  roles:
+    - homeassistant
+
+- name: Configure AdGuard Home
+  hosts: adguard
+  roles:
+    - adguard
+
+- name: Configure Unifi Controller and Tailscale
+  hosts: unifi-tailscale
+  roles:
+    - unifi
+
+- name: Configure Homarr Dashboard
+  hosts: homarr
+  roles:
+    - homarr
+
+- name: Configure Prometheus
+  hosts: prometheus
+  roles:
+    - prometheus
+
+- name: Configure Grafana
+  hosts: grafana
+  roles:
+    - grafana

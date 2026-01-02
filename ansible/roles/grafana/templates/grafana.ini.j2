@@ -1,0 +1,25 @@
+[server]
+http_addr = 0.0.0.0
+http_port = {{ grafana_port | default(3000) }}
+domain = {{ ansible_host }}
+root_url = http://{{ ansible_host }}:{{ grafana_port | default(3000) }}/
+
+[security]
+admin_user = admin
+admin_password = admin
+# Change password on first login!
+
+[users]
+allow_sign_up = false
+
+[auth.anonymous]
+enabled = false
+
+[dashboards]
+default_home_dashboard_path = /var/lib/grafana/dashboards/node-exporter.json
+
+[alerting]
+enabled = true
+
+[unified_alerting]
+enabled = true

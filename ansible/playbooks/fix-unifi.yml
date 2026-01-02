@@ -1,0 +1,7 @@
+---
+# Fix Unifi Java issue playbook
+
+- name: Fix Unifi Controller (install Java and restart)
+  hosts: unifi-tailscale
+  roles:
+    - unifi

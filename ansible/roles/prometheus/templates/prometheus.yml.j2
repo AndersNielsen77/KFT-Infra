@@ -1,0 +1,62 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:{{ prometheus_port | default(9090) }}']
+
+  # Proxmox host
+  - job_name: 'proxmox'
+    static_configs:
+      - targets: ['192.168.0.2:9100']
+        labels:
+          instance: 'pve'
+          type: 'hypervisor'
+
+  # LXC Containers
+  - job_name: 'containers'
+    static_configs:
+      - targets: ['192.168.0.59:9100']
+        labels:
+          instance: 'homeassistant'
+          type: 'container'
+
+      - targets: ['192.168.0.150:9100']
+        labels:
+          instance: 'unifi-tailscale'
+          type: 'container'
+
+      - targets: ['192.168.0.88:9100']
+        labels:
+          instance: 'adguard'
+          type: 'container'
+
+      - targets: ['{{ hostvars["grafana"]["ansible_host"] }}:9100']
+        labels:
+          instance: 'grafana'
+          type: 'container'
+
+      - targets: ['{{ hostvars["homarr"]["ansible_host"] }}:9100']
+        labels:
+          instance: 'homarr'
+          type: 'container'
+
+  # Home Assistant metrics (if enabled)
+  - job_name: 'homeassistant'
+    metrics_path: /api/prometheus
+    bearer_token: 'YOUR_HA_LONG_LIVED_TOKEN'  # Update this
+    static_configs:
+      - targets: ['192.168.0.59:8123']
+
+  # AdGuard Home stats
+  - job_name: 'adguard'
+    static_configs:
+      - targets: ['192.168.0.88:9617']  # Requires adguard-exporter

@@ -1,0 +1,45 @@
+---
+# Example Inventory File
+# Copy to inventory/prod/hosts.yml or inventory/test/hosts.yml
+# Update IP addresses to match your environment
+
+all:
+  vars:
+    ansible_user: root
+    ansible_python_interpreter: /usr/bin/python3
+    deploy_env: prod  # or 'test'
+
+  children:
+    proxmox:
+      hosts:
+        pve:
+          ansible_host: 192.168.1.100  # Your Proxmox host IP
+
+    containers:
+      children:
+        monitoring:
+          hosts:
+            grafana:
+              ansible_host: 192.168.1.109  # Update with actual IP
+              grafana_port: 3000
+            prometheus:
+              ansible_host: 192.168.1.115  # Update with actual IP
+              prometheus_port: 9090
+
+        network_services:
+          hosts:
+            adguard:
+              ansible_host: 192.168.1.88  # Update with actual IP
+              adguard_port: 3000
+
+        smarthome:
+          hosts:
+            homeassistant:
+              ansible_host: 192.168.1.100  # Update with actual IP
+              ha_port: 8123
+
+        dashboard:
+          hosts:
+            homarr:
+              ansible_host: 192.168.1.107  # Update with actual IP
+              homarr_port: 7575

@@ -1,0 +1,100 @@
+---
+# Grafana installation and configuration
+
+- name: Install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+    state: present
+
+- name: Add Grafana GPG key
+  apt_key:
+    url: https://apt.grafana.com/gpg.key
+    state: present
+
+- name: Add Grafana repository
+  apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+
+- name: Install Grafana
+  apt:
+    name: grafana
+    state: present
+    update_cache: yes
+
+- name: Configure Grafana
+  template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: Restart grafana
+
+- name: Configure Prometheus datasource
+  copy:
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://{{ hostvars['prometheus']['ansible_host'] }}:{{ hostvars['prometheus']['prometheus_port'] | default(9090) }}
+          isDefault: true
+          editable: false
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: Restart grafana
+
+- name: Create dashboards directory
+  file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+
+- name: Configure dashboard provider
+  copy:
+    dest: /etc/grafana/provisioning/dashboards/default.yml
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 30
+          options:
+            path: /var/lib/grafana/dashboards
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: Restart grafana
+
+- name: Download Node Exporter dashboard
+  get_url:
+    url: "https://grafana.com/api/dashboards/1860/revisions/37/download"
+    dest: /var/lib/grafana/dashboards/node-exporter.json
+    owner: grafana
+    group: grafana
+    mode: '0644'
+  ignore_errors: yes
+
+- name: Enable and start Grafana
+  systemd:
+    name: grafana-server
+    enabled: yes
+    state: started
+
+handlers:
+  - name: Restart grafana
+    systemd:
+      name: grafana-server
+      state: restarted

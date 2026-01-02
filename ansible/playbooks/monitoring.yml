@@ -1,0 +1,17 @@
+---
+# Monitoring-only playbook - Just Prometheus and Grafana
+
+- name: Apply common configuration (node_exporter)
+  hosts: containers
+  roles:
+    - common
+
+- name: Configure Prometheus
+  hosts: prometheus
+  roles:
+    - prometheus
+
+- name: Configure Grafana
+  hosts: grafana
+  roles:
+    - grafana

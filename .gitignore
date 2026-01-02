@@ -1,0 +1,53 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/terraform.tfstate.backup
+**/.terraformrc
+**/terraform.rc
+**/*.tfvars
+!**/*.tfvars.example
+**/crash.log
+**/crash.*.log
+**/.terraform.tfstate.lock.info
+
+# Ansible
+**/retry-files/
+**/*.retry
+**/inventory/*
+!**/inventory/*.example
+!**/inventory/test/
+!**/inventory/prod/
+**/vault-password.txt
+**/.vault_pass
+
+# Sensitive data
+**/*secrets*
+**/*password*
+**/*credentials*
+**/.env
+**/.env.local
+!**/.env.example
+
+# IDE
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+
+# Logs
+**/*.log
+**/logs/
+
+# Backup files
+**/*.bak
+**/*backup*
+**/.*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+.claude/

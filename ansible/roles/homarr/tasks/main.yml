@@ -1,0 +1,102 @@
+---
+# Homarr Dashboard role - Node.js/Yarn based
+
+- name: Install Node.js and Yarn
+  block:
+    - name: Install Node.js prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+
+    - name: Add NodeSource GPG key
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        state: present
+
+    - name: Add NodeSource repository (Node 20.x)
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_20.x nodistro main"
+        state: present
+        filename: nodesource
+
+    - name: Install Node.js
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+
+    - name: Install Yarn globally
+      npm:
+        name: yarn
+        global: yes
+
+- name: Ensure Homarr directory exists
+  file:
+    path: /opt/homarr
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Template Homarr environment file
+  template:
+    src: env.j2
+    dest: /opt/homarr/.env
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart homarr
+
+- name: Ensure Homarr dependencies are installed
+  command:
+    cmd: yarn install
+    chdir: /opt/homarr
+  args:
+    creates: /opt/homarr/node_modules
+  environment:
+    NODE_ENV: production
+
+- name: Build Homarr (if needed)
+  command:
+    cmd: yarn build
+    chdir: /opt/homarr
+  args:
+    creates: /opt/homarr/.next/BUILD_ID
+  environment:
+    NODE_ENV: production
+
+- name: Create Homarr systemd service
+  copy:
+    dest: /etc/systemd/system/homarr.service
+    content: |
+      [Unit]
+      Description=Homarr Service
+      After=network.target
+
+      [Service]
+      Type=exec
+      WorkingDirectory=/opt/homarr
+      EnvironmentFile=-/opt/homarr/.env
+      ExecStart=/usr/bin/yarn start
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+  notify: Restart homarr
+
+- name: Enable and start Homarr
+  systemd:
+    name: homarr
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Wait for Homarr to be ready
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ homarr_port | default(7575) }}"
+    delay: 10
+    timeout: 120

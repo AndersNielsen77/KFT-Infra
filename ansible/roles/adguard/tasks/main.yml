@@ -1,0 +1,71 @@
+---
+# AdGuard Home role
+
+- name: Create AdGuard Home directory
+  file:
+    path: /opt/AdGuardHome
+    state: directory
+    mode: '0755'
+
+- name: Check if AdGuard Home is installed
+  stat:
+    path: /opt/AdGuardHome/AdGuardHome
+  register: adguard_binary
+
+- name: Download AdGuard Home
+  when: not adguard_binary.stat.exists
+  get_url:
+    url: "https://github.com/AdguardTeam/AdGuardHome/releases/download/v0.107.52/AdGuardHome_linux_amd64.tar.gz"
+    dest: /tmp/adguard.tar.gz
+    mode: '0644'
+
+- name: Extract AdGuard Home
+  when: not adguard_binary.stat.exists
+  unarchive:
+    src: /tmp/adguard.tar.gz
+    dest: /opt/
+    remote_src: yes
+    owner: root
+    group: root
+
+- name: Template AdGuard Home configuration
+  template:
+    src: AdGuardHome.yaml.j2
+    dest: /opt/AdGuardHome/AdGuardHome.yaml
+    owner: root
+    group: root
+    mode: '0600'
+    backup: yes
+  notify: Restart adguard
+
+- name: Create AdGuard Home systemd service
+  copy:
+    dest: /etc/systemd/system/AdGuardHome.service
+    content: |
+      [Unit]
+      Description=AdGuard Home: Network-level blocker
+      ConditionFileIsExecutable=/opt/AdGuardHome/AdGuardHome
+      After=syslog.target network-online.target
+
+      [Service]
+      StartLimitInterval=5
+      StartLimitBurst=10
+      ExecStart=/opt/AdGuardHome/AdGuardHome "-s" "run"
+      WorkingDirectory=/opt/AdGuardHome
+      StandardOutput=file:/var/log/AdGuardHome.out
+      StandardError=file:/var/log/AdGuardHome.err
+      Restart=always
+      RestartSec=10
+      EnvironmentFile=-/etc/sysconfig/AdGuardHome
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+  notify: Restart adguard
+
+- name: Enable and start AdGuard Home
+  systemd:
+    name: AdGuardHome
+    enabled: yes
+    state: started
+    daemon_reload: yes

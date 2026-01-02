@@ -1,0 +1,5 @@
+---
+- name: Restart homarr
+  systemd:
+    name: homarr
+    state: restarted
