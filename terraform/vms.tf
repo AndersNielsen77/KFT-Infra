@@ -21,7 +21,7 @@ resource "proxmox_virtual_environment_vm" "truenas" {
   }
 
   memory {
-    dedicated = 8192
+    dedicated = var.truenas_memory
     floating  = 0  # Disable ballooning
   }
 

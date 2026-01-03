@@ -1,0 +1,13 @@
+# Development/Test Environment Configuration
+# Copy this to dev.tfvars and fill in your credentials
+
+environment      = "dev"
+proxmox_endpoint = "https://YOUR_PROXMOX_IP:8006"
+proxmox_username = "root@pam"
+proxmox_password = "YOUR_PASSWORD_HERE"
+node_name        = "pve"
+storage          = "local-lvm"
+
+# Dev uses single bridge for simplicity
+bridge_main = "vmbr0"
+bridge_iot  = "vmbr0"  # Same as main in dev
