@@ -1,0 +1,8 @@
+---
+# Handlers for common role
+
+- name: Restart node_exporter
+  systemd:
+    name: node_exporter
+    state: restarted
+

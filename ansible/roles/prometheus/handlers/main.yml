@@ -1,0 +1,8 @@
+---
+# Handlers for prometheus role
+
+- name: Restart prometheus
+  systemd:
+    name: prometheus
+    state: restarted
+

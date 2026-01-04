@@ -102,9 +102,3 @@
     enabled: yes
     state: started
     daemon_reload: yes
-
-handlers:
-  - name: Restart prometheus
-    systemd:
-      name: prometheus
-      state: restarted

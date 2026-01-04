@@ -71,9 +71,3 @@
         enabled: yes
         state: started
         daemon_reload: yes
-
-handlers:
-  - name: Restart node_exporter
-    systemd:
-      name: node_exporter
-      state: restarted

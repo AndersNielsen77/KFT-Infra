@@ -92,9 +92,3 @@
     name: grafana-server
     enabled: yes
     state: started
-
-handlers:
-  - name: Restart grafana
-    systemd:
-      name: grafana-server
-      state: restarted
