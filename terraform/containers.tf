@@ -69,6 +69,11 @@ resource "proxmox_virtual_environment_container" "homeassistant" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }
@@ -140,6 +145,11 @@ resource "proxmox_virtual_environment_container" "unifi_tailscale" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }
@@ -212,6 +222,11 @@ resource "proxmox_virtual_environment_container" "adguard" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }
@@ -280,6 +295,11 @@ resource "proxmox_virtual_environment_container" "homarr" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }
@@ -341,6 +361,11 @@ resource "proxmox_virtual_environment_container" "grafana" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }
@@ -397,4 +422,16 @@ resource "proxmox_virtual_environment_container" "prometheus" {
   start_on_boot = true
 
   tags = ["homelab", "monitoring"]
+
+  lifecycle {
+    ignore_changes = [
+      initialization,
+      disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
+    ]
+  }
 }
