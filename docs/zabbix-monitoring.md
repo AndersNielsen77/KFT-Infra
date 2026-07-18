@@ -70,6 +70,39 @@ customer, and validate against it first.
 | Orchestration | `ansible/playbooks/zabbix.yml` |
 | Backups | `scripts/export-zabbix-server.sh`, `scripts/export-zabbix-proxy.sh` (also installed + cron'd by the roles themselves) |
 | Restore | `scripts/restore-zabbix-server.sh` |
+| OVH host networking (DNAT) | `ansible/roles/ovh_host_networking/` - runs on the OVH Proxmox host itself, not a container |
+| Reverse proxy vhost | `ansible/roles/zabbix_reverse_proxy/` - runs on the existing `Reverse-Proxy` CT (105) that fronts the other `*.nordspeed.dk` sites |
+
+## Reaching the frontend
+
+The Zabbix web UI is exposed at `http://zabbix.nordspeed.dk` through the
+same reverse-proxy container as the other sites. Two things worth knowing:
+
+- **DNS isn't set up yet** - the other `*.nordspeed.dk` sites resolve
+  through Cloudflare (their origin vhosts have no TLS block because
+  Cloudflare terminates HTTPS itself), but `zabbix.nordspeed.dk` has no
+  DNS record. Add one in Cloudflare matching the others - that's a manual
+  step outside this repo, there's no DNS/Cloudflare access from here.
+- **The vhost is plain HTTP**, matching the existing pattern on this proxy
+  (cphweb, ihg, rundtombiler are the same) - add a Cloudflare TLS mode or a
+  certbot cert the same way those were set up, if you want it, once DNS
+  exists.
+
+## The OVH host's own networking
+
+Only one thing lives outside any container: the DNAT rule on the OVH
+Proxmox host that routes the shared WireGuard port to the zabbix-server
+CT. `ansible/roles/ovh_host_networking` manages it (idempotent - safe to
+re-run). Two things it does NOT and cannot manage, since they're a
+separate control plane with no SSH/API access from here:
+
+- The OVH Edge Network Firewall rule permitting UDP 51830 inbound
+- The "TCP established, ports 32768-60999" rule that fixed the host's
+  outbound IPv4
+
+Both are one-time manual steps in the OVH panel (manager.ovh.com) -
+already done for this deployment, but worth knowing about if the host
+ever needs to be rebuilt from scratch.
 
 ## Onboarding a new customer
 

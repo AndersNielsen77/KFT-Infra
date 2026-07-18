@@ -16,6 +16,8 @@ This document describes all the Ansible roles created for your homelab infrastru
 | **wireguard_tunnel** | Zabbix server<->proxy tunnels | Per-host WireGuard keypair + `wg0`, hub-and-spoke on the server side |
 | **zabbix_server** | Central Zabbix monitoring server | Postgres, nginx/php-fpm frontend, proxy registration, admin password, backup cron |
 | **zabbix_proxy** | Per-customer Zabbix proxy | zabbix-proxy (sqlite), backup cron |
+| **ovh_host_networking** | OVH Proxmox host itself (not a container) | The DNAT rule routing the shared WireGuard port to zabbix-server |
+| **zabbix_reverse_proxy** | Existing Reverse-Proxy CT (105) | Adds a vhost exposing the Zabbix frontend at zabbix.nordspeed.dk |
 
 ---
 
@@ -311,6 +313,54 @@ ansible-playbook playbooks/zabbix.yml --limit zabbix_proxy_<customer>
 
 Full architecture, onboarding runbook, and disaster recovery procedure:
 [`docs/zabbix-monitoring.md`](docs/zabbix-monitoring.md).
+
+---
+
+## OVH Host Networking Role
+
+**Purpose:** The one piece of the Zabbix setup that lives outside any
+container - the DNAT rule on the OVH Proxmox host itself.
+
+**What it does:**
+- Ensures a DNAT rule exists routing the shared WireGuard port
+  (`udp/51830`) to the zabbix-server container, and persists it via
+  `netfilter-persistent`
+- Idempotent - matches on the rule's comment, so re-running doesn't create
+  a duplicate
+
+**Note:** does NOT and cannot manage the OVH Edge Network Firewall (a
+separate control plane at manager.ovh.com with no SSH/API access from
+here) - that side's rule (permit UDP 51830 inbound) is a one-time manual
+step, already done for this deployment.
+
+**Usage:**
+```bash
+ansible-playbook playbooks/zabbix.yml --limit ovh_proxmox_host
+```
+
+---
+
+## Zabbix Reverse Proxy Role
+
+**Purpose:** Exposes the Zabbix frontend through the same reverse-proxy
+container that already fronts the other `*.nordspeed.dk` sites.
+
+**What it does:**
+- Templates and enables an nginx vhost for `zabbix.nordspeed.dk`,
+  matching the plain-HTTP pattern already used by the other vhosts on
+  this proxy (cphweb, ihg, rundtombiler)
+- Reloads nginx
+
+**Note:** DNS for `zabbix.nordspeed.dk` isn't set up yet - the other sites
+resolve through Cloudflare, which is why their origin vhosts have no TLS
+block (Cloudflare terminates HTTPS itself). Add a matching DNS record in
+Cloudflare to actually reach this - outside this repo's scope, no
+DNS/Cloudflare access from here.
+
+**Usage:**
+```bash
+ansible-playbook playbooks/zabbix.yml --limit zabbix_reverse_proxy
+```
 
 ---
 

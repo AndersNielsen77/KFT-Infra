@@ -1,0 +1,5 @@
+---
+zabbix_frontend_domain: zabbix.nordspeed.dk
+# The zabbix-server CT's address on the OVH host's private vmbr1 network -
+# same value as zabbix_server_ip in terraform/zabbix.tf.
+zabbix_frontend_upstream: "192.168.10.50"

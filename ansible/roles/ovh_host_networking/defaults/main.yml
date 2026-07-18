@@ -1,0 +1,7 @@
+---
+# The one DNAT rule the whole hub-and-spoke WireGuard setup depends on:
+# routes the single shared WireGuard port from the OVH host's public IP
+# down to the zabbix-server CT on its private vmbr1 network. One rule for
+# every customer - see docs/zabbix-monitoring.md.
+zabbix_wg_dnat_port: 51830
+zabbix_wg_dnat_target: "192.168.10.50:51830"

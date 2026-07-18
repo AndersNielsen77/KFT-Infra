@@ -1,0 +1,24 @@
+---
+# Runs on the OVH Proxmox HOST itself (not a container) - the one piece of
+# this whole setup that lives outside any CT. Without this rule, WireGuard
+# traffic arriving at the host's public IP never reaches the zabbix-server
+# container on its private vmbr1 network.
+#
+# Note: this only handles the host's own iptables. The OVH Edge Network
+# Firewall (a separate control plane at manager.ovh.com, outside SSH/Ansible
+# reach) must ALSO permit this port inbound, and permit established TCP on
+# the host's ephemeral port range for outbound connectivity generally - see
+# docs/zabbix-monitoring.md for both, since those are one-time manual steps
+# in the OVH panel that can't be automated from here.
+
+- name: DNAT the shared WireGuard port to the zabbix-server container
+  iptables:
+    table: nat
+    chain: PREROUTING
+    protocol: udp
+    destination_port: "{{ zabbix_wg_dnat_port }}"
+    jump: DNAT
+    to_destination: "{{ zabbix_wg_dnat_target }}"
+    state: present
+    comment: "Zabbix WireGuard hub - shared by every customer proxy"
+  notify: Persist iptables rules

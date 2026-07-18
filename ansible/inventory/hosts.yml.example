@@ -102,3 +102,28 @@ all:
         #
         # Don't forget to also add this customer's public key to the
         # server's wg_peers list above and to zabbix_customer_proxies.
+
+    # The OVH Proxmox HOST itself (not a container) - owns the one DNAT
+    # rule the whole hub-and-spoke tunnel depends on. See
+    # roles/ovh_host_networking.
+    ovh_proxmox_host:
+      hosts:
+        ns3079806:
+          ansible_host: 100.123.75.57  # reach it over Tailscale, not the public IP
+
+    # The existing reverse-proxy container that already fronts the other
+    # *.nordspeed.dk sites - adds one more vhost for the Zabbix frontend.
+    # See roles/zabbix_reverse_proxy.
+    #
+    # Like zabbix_server, this container is on the OVH host's private
+    # vmbr1 network - ProxyJump does NOT work here, the host has
+    # AllowTcpForwarding disabled as deliberate hardening. Run this play
+    # from the OVH host itself instead (ansible_connection: local won't
+    # work either, since it targets the CT, not the host - actually SSH
+    # to the CT from ON the host, e.g. by running ansible-playbook with
+    # this inventory FROM ns3079806, where 192.168.10.105 is directly
+    # reachable):
+    zabbix_reverse_proxy:
+      hosts:
+        reverse-proxy:
+          ansible_host: 192.168.10.105
