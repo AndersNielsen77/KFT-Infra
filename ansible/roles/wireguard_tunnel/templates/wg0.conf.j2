@@ -1,0 +1,29 @@
+[Interface]
+Address = {{ wg_address }}
+PrivateKey = {{ wg_privkey_slurp.content | b64decode | trim }}
+{% if wg_listen_port | default('') != '' %}
+ListenPort = {{ wg_listen_port }}
+{% endif %}
+{% if wg_peers | default([]) | length > 0 %}
+{# Hub side (the central server): one [Peer] block per customer, all on #}
+{# this single interface/port - onboarding a customer means adding an #}
+{# entry here, not opening another port. #}
+{% for peer in wg_peers %}
+
+[Peer]
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+{% endfor %}
+{% else %}
+{# Spoke side (a customer's proxy): exactly one peer, the server. #}
+
+[Peer]
+PublicKey = {{ wg_peer_public_key }}
+AllowedIPs = {{ wg_peer_allowed_ips }}
+{% if wg_peer_endpoint | default('') != '' %}
+Endpoint = {{ wg_peer_endpoint }}
+{% endif %}
+{% if wg_persistent_keepalive | default(0) %}
+PersistentKeepalive = {{ wg_persistent_keepalive }}
+{% endif %}
+{% endif %}

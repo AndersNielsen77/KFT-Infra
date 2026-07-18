@@ -1,0 +1,70 @@
+---
+# Per-customer Zabbix proxy (active mode, sqlite backend - a proxy's local
+# DB is disposable cache, not a system of record, so sqlite is the right
+# choice here even though it'd be wrong for the server).
+
+- name: Add Zabbix {{ zabbix_version }} repository package
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/{{ zabbix_version }}/release/debian/pool/main/z/zabbix-release/zabbix-release_latest_{{ zabbix_version }}+debian12_all.deb"
+
+- name: Update apt cache after adding the Zabbix repo
+  apt:
+    update_cache: yes
+
+- name: Install zabbix-proxy (sqlite3 backend)
+  apt:
+    name:
+      - zabbix-proxy-sqlite3
+      - zabbix-sql-scripts
+    state: present
+
+- name: Create the proxy DB directory
+  file:
+    path: /var/lib/zabbix
+    state: directory
+    owner: zabbix
+    group: zabbix
+    mode: '0750'
+
+- name: Configure zabbix_proxy.conf - Server
+  lineinfile:
+    path: /etc/zabbix/zabbix_proxy.conf
+    regexp: '^Server='
+    line: "Server={{ zabbix_proxy_server }}"
+  notify: Restart zabbix-proxy
+
+- name: Configure zabbix_proxy.conf - Hostname
+  lineinfile:
+    path: /etc/zabbix/zabbix_proxy.conf
+    regexp: '^Hostname='
+    line: "Hostname={{ zabbix_proxy_hostname }}"
+  notify: Restart zabbix-proxy
+
+- name: Configure zabbix_proxy.conf - DBName (absolute path)
+  # The packaged default is a bare relative name ("zabbix_proxy"), which
+  # resolves relative to the zabbix user's $HOME (/root - not writable by
+  # it) and fails with "unable to open database file" on first start.
+  lineinfile:
+    path: /etc/zabbix/zabbix_proxy.conf
+    regexp: '^DBName='
+    line: "DBName=/var/lib/zabbix/zabbix_proxy.db"
+  notify: Restart zabbix-proxy
+
+- name: Enable and start zabbix-proxy
+  systemd:
+    name: zabbix-proxy
+    enabled: yes
+    state: started
+
+- name: Install the backup script
+  copy:
+    src: export-zabbix-proxy.sh
+    dest: /usr/local/bin/backup-zabbix-proxy.sh
+    mode: '0750'
+
+- name: Schedule the daily backup
+  cron:
+    name: "zabbix proxy backup"
+    job: "/usr/local/bin/backup-zabbix-proxy.sh >> /var/log/zabbix-backup.log 2>&1"
+    hour: "3"
+    minute: "45"

@@ -13,6 +13,9 @@ This document describes all the Ansible roles created for your homelab infrastru
 | **homarr** | Dashboard for homelab services | Node.js/Yarn application |
 | **prometheus** | Metrics collection | Prometheus server with scrape configs |
 | **grafana** | Metrics visualization | Grafana with Prometheus datasource |
+| **wireguard_tunnel** | Zabbix server<->proxy tunnels | Per-host WireGuard keypair + `wg0`, hub-and-spoke on the server side |
+| **zabbix_server** | Central Zabbix monitoring server | Postgres, nginx/php-fpm frontend, proxy registration, admin password, backup cron |
+| **zabbix_proxy** | Per-customer Zabbix proxy | zabbix-proxy (sqlite), backup cron |
 
 ---
 
@@ -226,6 +229,88 @@ ssh root@192.168.0.2 "pct start 109"
 # Configure
 ansible-playbook playbooks/site.yml --tags grafana
 ```
+
+---
+
+## WireGuard Tunnel Role
+
+**Purpose:** Materialize one side of a point-to-point WireGuard tunnel between
+a Zabbix proxy and the central server.
+
+**What it does:**
+- Generates a WireGuard keypair if none exists (or uses one supplied via
+  `wg_private_key`) and prints the public key - never logs the private half
+- Templates `/etc/wireguard/wg0.conf`
+- On the server (hub) side, set `wg_peers` - a list of `{public_key,
+  allowed_ips}`, one per customer - instead of the single `wg_peer_*` vars
+- On a proxy (spoke) side, set the single `wg_peer_public_key` /
+  `wg_peer_endpoint` / `wg_peer_allowed_ips` vars instead
+- Enables `wg-quick@wg0` at boot
+
+**Variables:** see `roles/wireguard_tunnel/defaults/main.yml`
+
+**Usage:**
+```bash
+ansible-playbook playbooks/zabbix.yml --tags wireguard_tunnel
+```
+
+---
+
+## Zabbix Server Role
+
+**Purpose:** Central Zabbix server - Postgres backend, nginx/php-fpm
+frontend, proxy registration.
+
+**What it does:**
+- Adds the Zabbix apt repo (7.4 by default) and installs
+  `zabbix-server-pgsql` + frontend + nginx + php-fpm
+- Creates the Postgres role/database and imports the schema (idempotent -
+  safe to re-run against an existing DB)
+- Fixes the packaged nginx vhost, which ships with its `listen` directive
+  commented out (silently 404s on `/api_jsonrpc.php` while `/` still 200s
+  from the distro default site, which is a confusing failure mode if you
+  don't know to look for it)
+- Templates `zabbix.conf.php` to skip the web setup wizard entirely
+- Logs into the frontend with the default `Admin`/`zabbix` credentials and
+  changes the password if that login still succeeds (no-ops once it's been
+  changed)
+- Registers each customer proxy listed in `zabbix_customer_proxies` via the
+  API, if not already present
+- Installs `backup-zabbix-server.sh` to `/usr/local/bin` and crons it nightly
+
+**Variables:** see `roles/zabbix_server/defaults/main.yml`. Secrets
+(`zabbix_db_password`, `zabbix_admin_password`) belong in
+`inventory/prod/hosts.yml` only - never committed.
+
+**Usage:**
+```bash
+ansible-playbook playbooks/zabbix.yml --limit zabbix_server
+```
+
+---
+
+## Zabbix Proxy Role
+
+**Purpose:** Per-customer Zabbix proxy (active mode, sqlite backend).
+
+**What it does:**
+- Adds the Zabbix apt repo and installs `zabbix-proxy-sqlite3`
+- Sets `Server=`, `Hostname=`, and `DBName=` in `zabbix_proxy.conf`
+- Uses an **absolute** path for `DBName` - the packaged default is a bare
+  relative filename, which resolves against the `zabbix` user's `$HOME`
+  (`/root`, not writable by it) and fails with "unable to open database
+  file" on first start otherwise
+- Installs `backup-zabbix-proxy.sh` to `/usr/local/bin` and crons it nightly
+
+**Variables:** see `roles/zabbix_proxy/defaults/main.yml`
+
+**Usage:**
+```bash
+ansible-playbook playbooks/zabbix.yml --limit zabbix_proxy_<customer>
+```
+
+Full architecture, onboarding runbook, and disaster recovery procedure:
+[`docs/zabbix-monitoring.md`](docs/zabbix-monitoring.md).
 
 ---
 

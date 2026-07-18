@@ -1,0 +1,23 @@
+<?php
+// Managed by Ansible (roles/zabbix_server) - do not edit by hand.
+$DB['TYPE']       = 'POSTGRESQL';
+$DB['SERVER']     = 'localhost';
+$DB['PORT']       = '5432';
+$DB['DATABASE']   = '{{ zabbix_db_name }}';
+$DB['USER']       = '{{ zabbix_db_user }}';
+$DB['PASSWORD']   = '{{ zabbix_db_password }}';
+$DB['SCHEMA']     = '';
+$DB['ENCRYPTION'] = false;
+$DB['KEY_FILE']       = '';
+$DB['CERT_FILE']      = '';
+$DB['CA_FILE']        = '';
+$DB['VERIFY_HOST']    = false;
+$DB['CIPHER_LIST']    = '';
+
+$DB['DOUBLE_IEEE754'] = true;
+
+$ZBX_SERVER      = 'localhost';
+$ZBX_SERVER_PORT = '{{ zabbix_server_port }}';
+$ZBX_SERVER_NAME = '{{ zabbix_frontend_server_name }}';
+
+$IMAGE_FORMAT_DEFAULT = IMAGE_FORMAT_PNG;

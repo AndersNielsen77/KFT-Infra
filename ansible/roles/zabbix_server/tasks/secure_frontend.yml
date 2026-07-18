@@ -1,0 +1,48 @@
+---
+# Change the default Admin/zabbix frontend password on first run.
+# Safe to re-run: if the default password no longer works (already changed),
+# the login attempt just fails and this is skipped.
+
+- name: Try logging in with the default Admin/zabbix credentials
+  uri:
+    url: "http://localhost/api_jsonrpc.php"
+    method: POST
+    body_format: json
+    headers:
+      Content-Type: "application/json-rpc"
+    body:
+      jsonrpc: "2.0"
+      method: "user.login"
+      params:
+        username: "Admin"
+        password: "zabbix"
+      id: 1
+    status_code: 200
+  register: zbx_default_login
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Set a real Admin password
+  when:
+    - zbx_default_login.json is defined
+    - zbx_default_login.json.result is defined
+    - (zabbix_admin_password | default('')) != ''
+  no_log: true
+  block:
+    - name: Update Admin's password
+      uri:
+        url: "http://localhost/api_jsonrpc.php"
+        method: POST
+        body_format: json
+        headers:
+          Content-Type: "application/json-rpc"
+          Authorization: "Bearer {{ zbx_default_login.json.result }}"
+        body:
+          jsonrpc: "2.0"
+          method: "user.update"
+          params:
+            userid: "1"
+            password: "{{ zabbix_admin_password }}"
+          id: 2
+        status_code: 200

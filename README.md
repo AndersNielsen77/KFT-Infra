@@ -15,27 +15,47 @@ Terraform + Ansible infrastructure for deploying and managing a home lab on Prox
 - **Network**: AdGuard Home DNS blocker
 - **Smart Home**: Home Assistant
 - **Dashboard**: Homarr
+- **Customer monitoring**: Zabbix - centralized server (OVH node) + one
+  WireGuard-connected proxy per customer. See
+  [`docs/zabbix-monitoring.md`](docs/zabbix-monitoring.md) for the
+  architecture, onboarding runbook, and disaster recovery procedure.
 
 ## 📁 Project Structure
 
 ```
 KFT-Infra/
 ├── terraform/                  # Infrastructure as Code
-│   ├── containers.tf          # LXC container definitions
+│   ├── containers.tf          # LXC container definitions (home-lab node)
 │   ├── vms.tf                 # VM definitions
-│   ├── provider.tf            # Proxmox provider config
+│   ├── provider.tf            # Proxmox provider config (home-lab node)
+│   ├── ovh_provider.tf        # Second provider alias - OVH node (Zabbix server)
+│   ├── zabbix.tf              # Central Zabbix server container
+│   ├── zabbix_proxy_instances.tf  # One module block per customer proxy
+│   ├── modules/zabbix_proxy/  # Reusable per-customer proxy container module
 │   ├── variables.tf           # Variable definitions
 │   └── terraform.tfvars       # Your values (not in git)
 │
-└── ansible/                   # Configuration Management
-    ├── inventory/
-    │   ├── test/hosts.yml    # Test environment
-    │   └── prod/hosts.yml    # Production environment
-    ├── roles/                # Service configurations
-    ├── playbooks/
-    │   ├── bootstrap.yml     # Setup SSH (test env)
-    │   └── site.yml          # Main playbook
-    └── deploy.sh             # Easy deployment script
+├── ansible/                   # Configuration Management
+│   ├── inventory/
+│   │   ├── test/hosts.yml    # Test environment
+│   │   └── prod/hosts.yml    # Production environment
+│   ├── roles/                # Service configurations
+│   │   ├── wireguard_tunnel/ # Zabbix server<->proxy tunnels
+│   │   ├── zabbix_server/    # Central Zabbix server
+│   │   └── zabbix_proxy/     # Per-customer Zabbix proxy
+│   ├── playbooks/
+│   │   ├── bootstrap.yml     # Setup SSH (test env)
+│   │   ├── site.yml          # Main playbook (home-lab services)
+│   │   └── zabbix.yml        # Zabbix server + all customer proxies
+│   └── deploy.sh             # Easy deployment script
+│
+├── scripts/                    # Backup/restore for stateful data Ansible can't regenerate
+│   ├── export-zabbix-server.sh
+│   ├── export-zabbix-proxy.sh
+│   └── restore-zabbix-server.sh
+│
+└── docs/
+    └── zabbix-monitoring.md    # Architecture, onboarding runbook, disaster recovery
 ```
 
 ## 🚀 Quick Start
@@ -111,6 +131,12 @@ cd ansible
 
 # Deploy specific service
 ansible-playbook -i inventory/prod/hosts.yml playbooks/site.yml --tags grafana
+
+# Deploy Zabbix (central server + all customer proxies)
+ansible-playbook -i inventory/prod/hosts.yml playbooks/zabbix.yml
+
+# Deploy/converge just one customer's proxy
+ansible-playbook -i inventory/prod/hosts.yml playbooks/zabbix.yml --limit zabbix_proxy_<customer>
 ```
 
 ## 🌍 Environments
@@ -138,6 +164,11 @@ ansible-playbook -i inventory/prod/hosts.yml playbooks/site.yml --tags grafana
 | Homarr | 107 | 7575 | Dashboard |
 | Grafana | 109 | 3000 | Metrics visualization |
 | Prometheus | 115 | 9090 | Metrics collection |
+| Zabbix Proxy (local-test) | 116 | - | Reference/test customer for the Zabbix monitoring pattern |
+
+Central Zabbix server (CT 101, Postgres + web frontend) lives on the
+separate OVH node, not this one - see
+[`docs/zabbix-monitoring.md`](docs/zabbix-monitoring.md).
 
 ## 🔐 Security Notes
 

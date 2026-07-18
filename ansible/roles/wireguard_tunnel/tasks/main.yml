@@ -1,0 +1,71 @@
+---
+# Dedicated point-to-point WireGuard tunnel between a Zabbix proxy and the
+# central Zabbix server. Each customer gets their own tunnel/subnet - this
+# role just materializes one side of it, called once per host with different
+# vars (see playbooks/zabbix.yml and inventory group_vars).
+
+- name: Ensure wireguard-tools is installed
+  apt:
+    name: wireguard-tools
+    state: present
+    update_cache: yes
+
+- name: Ensure /etc/wireguard exists
+  file:
+    path: /etc/wireguard
+    state: directory
+    mode: '0700'
+
+- name: Check for an existing private key on disk
+  stat:
+    path: /etc/wireguard/privatekey
+  register: wg_privkey_file
+
+- name: Generate a private key if none exists and none was supplied via vault
+  when: not wg_privkey_file.stat.exists and (wg_private_key | default('')) == ''
+  shell: |
+    umask 077
+    wg genkey > /etc/wireguard/privatekey
+  args:
+    creates: /etc/wireguard/privatekey
+
+- name: Write the vault-supplied private key, if given
+  when: (wg_private_key | default('')) != ''
+  copy:
+    content: "{{ wg_private_key }}"
+    dest: /etc/wireguard/privatekey
+    mode: '0600'
+  no_log: true
+
+- name: Read the private key back for templating
+  slurp:
+    src: /etc/wireguard/privatekey
+  register: wg_privkey_slurp
+  no_log: true
+
+- name: Derive this host's public key
+  command: wg pubkey
+  args:
+    stdin: "{{ wg_privkey_slurp.content | b64decode }}"
+  register: wg_pubkey_out
+  changed_when: false
+  no_log: true
+
+- name: Show this host's public key
+  # Safe to print/share - it's the PUBLIC half. Hand this to whoever is
+  # configuring the peer side of the tunnel.
+  debug:
+    msg: "{{ inventory_hostname }} WireGuard public key: {{ wg_pubkey_out.stdout }}"
+
+- name: Template {{ wg_interface }}.conf
+  template:
+    src: wg0.conf.j2
+    dest: "/etc/wireguard/{{ wg_interface }}.conf"
+    mode: '0600'
+  notify: Restart wireguard tunnel
+
+- name: Enable and start the tunnel
+  systemd:
+    name: "wg-quick@{{ wg_interface }}"
+    enabled: yes
+    state: started
