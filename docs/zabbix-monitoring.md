@@ -75,18 +75,21 @@ customer, and validate against it first.
 
 ## Reaching the frontend
 
-The Zabbix web UI is exposed at `http://zabbix.nordspeed.dk` through the
-same reverse-proxy container as the other sites. Two things worth knowing:
+The Zabbix web UI is exposed at `http://monitoring.nordspeed.dk` through
+the same reverse-proxy container as the other sites - confirmed working
+end to end, publicly, right now. Two things worth knowing:
 
-- **DNS isn't set up yet** - the other `*.nordspeed.dk` sites resolve
-  through Cloudflare (their origin vhosts have no TLS block because
-  Cloudflare terminates HTTPS itself), but `zabbix.nordspeed.dk` has no
-  DNS record. Add one in Cloudflare matching the others - that's a manual
-  step outside this repo, there's no DNS/Cloudflare access from here.
+- **This reuses an existing vhost name.** `monitoring.nordspeed.dk`
+  previously pointed at `192.168.10.190`, a long-dead host (confirmed
+  unreachable, no CT/VM claims that IP, ARP shows `FAILED`) - repurposed
+  instead of creating a new `zabbix.nordspeed.dk` subdomain, since this
+  name already had a working Cloudflare DNS record (same IPs as the other
+  `*.nordspeed.dk` sites) and fits Zabbix better anyway.
 - **The vhost is plain HTTP**, matching the existing pattern on this proxy
-  (cphweb, ihg, rundtombiler are the same) - add a Cloudflare TLS mode or a
-  certbot cert the same way those were set up, if you want it, once DNS
-  exists.
+  (cphweb, ihg, rundtombiler are the same) - their HTTPS, where present,
+  comes from Cloudflare terminating in front of the origin, which is why
+  their vhosts have no TLS block either. Add a certbot cert the same way
+  those were set up if you want the origin itself to also speak TLS.
 
 ## The OVH host's own networking
 

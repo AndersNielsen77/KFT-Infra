@@ -1,5 +1,11 @@
 ---
-zabbix_frontend_domain: zabbix.nordspeed.dk
+# Reusing an existing vhost name: monitoring.nordspeed.dk previously
+# pointed at 192.168.10.190, a long-dead host (confirmed unreachable, no
+# CT/VM claims that IP, ARP shows FAILED) - repurposed rather than
+# creating a new zabbix.nordspeed.dk subdomain, since this one already has
+# a working Cloudflare DNS record and "monitoring" fits Zabbix better
+# anyway.
+zabbix_frontend_domain: monitoring.nordspeed.dk
 # The zabbix-server CT's address on the OVH host's private vmbr1 network -
 # same value as zabbix_server_ip in terraform/zabbix.tf.
 zabbix_frontend_upstream: "192.168.10.50"

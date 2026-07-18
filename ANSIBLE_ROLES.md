@@ -17,7 +17,7 @@ This document describes all the Ansible roles created for your homelab infrastru
 | **zabbix_server** | Central Zabbix monitoring server | Postgres, nginx/php-fpm frontend, proxy registration, admin password, backup cron |
 | **zabbix_proxy** | Per-customer Zabbix proxy | zabbix-proxy (sqlite), backup cron |
 | **ovh_host_networking** | OVH Proxmox host itself (not a container) | The DNAT rule routing the shared WireGuard port to zabbix-server |
-| **zabbix_reverse_proxy** | Existing Reverse-Proxy CT (105) | Adds a vhost exposing the Zabbix frontend at zabbix.nordspeed.dk |
+| **zabbix_reverse_proxy** | Existing Reverse-Proxy CT (105) | Adds a vhost exposing the Zabbix frontend at monitoring.nordspeed.dk |
 
 ---
 
@@ -346,16 +346,16 @@ ansible-playbook playbooks/zabbix.yml --limit ovh_proxmox_host
 container that already fronts the other `*.nordspeed.dk` sites.
 
 **What it does:**
-- Templates and enables an nginx vhost for `zabbix.nordspeed.dk`,
+- Templates and enables an nginx vhost for `monitoring.nordspeed.dk`,
   matching the plain-HTTP pattern already used by the other vhosts on
   this proxy (cphweb, ihg, rundtombiler)
 - Reloads nginx
 
-**Note:** DNS for `zabbix.nordspeed.dk` isn't set up yet - the other sites
-resolve through Cloudflare, which is why their origin vhosts have no TLS
-block (Cloudflare terminates HTTPS itself). Add a matching DNS record in
-Cloudflare to actually reach this - outside this repo's scope, no
-DNS/Cloudflare access from here.
+**Note:** this reuses an existing vhost name that previously pointed at a
+confirmed-dead host (`192.168.10.190` - unreachable, no CT/VM claims it,
+ARP shows `FAILED`), chosen over a new `zabbix.nordspeed.dk` subdomain
+since it already had a working Cloudflare DNS record. Verified reachable
+publicly end to end.
 
 **Usage:**
 ```bash
