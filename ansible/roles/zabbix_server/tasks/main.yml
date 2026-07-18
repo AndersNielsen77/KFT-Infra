@@ -17,6 +17,23 @@
   apt:
     update_cache: yes
 
+- name: Install locales package
+  # Minimal Debian images ship with only the C/POSIX locale. Without
+  # en_US.UTF-8, the frontend logs in fine but shows "Locale for language
+  # en_US is not found... Unable to translate Zabbix interface" on every
+  # page.
+  apt:
+    name: locales
+    state: present
+
+- name: Generate the en_US.UTF-8 locale
+  community.general.locale_gen:
+    name: en_US.UTF-8
+    state: present
+  notify:
+    - Restart php-fpm
+    - Restart nginx
+
 - name: Install Zabbix server, frontend and dependencies
   apt:
     name:
