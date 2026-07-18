@@ -63,9 +63,3 @@ variable "truenas_memory" {
   type        = number
   default     = 2048
 }
-
-variable "ansible_ssh_public_keys" {
-  description = "SSH public keys baked into new Zabbix server/proxy containers at creation, so Ansible can manage them without a separate bootstrap step"
-  type        = list(string)
-  default     = []
-}

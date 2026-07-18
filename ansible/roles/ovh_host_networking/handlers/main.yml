@@ -1,3 +1,0 @@
----
-- name: Persist iptables rules
-  command: netfilter-persistent save

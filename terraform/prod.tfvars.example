@@ -14,16 +14,3 @@ storage          = "local-lvm"
 # Prod uses dual bridges with proper network segmentation
 bridge_main = "vmbr0"
 bridge_iot  = "vmbr1"
-
-# OVH node - central Zabbix server (see terraform/ovh_provider.tf)
-ovh_proxmox_endpoint = "https://YOUR_OVH_PROXMOX_IP:8006"
-ovh_proxmox_api_token = "root@pam!terraform=YOUR_TOKEN_UUID"
-# ovh_proxmox_username = "root@pam"
-# ovh_proxmox_password = "YOUR_OVH_PASSWORD_HERE"
-ovh_node_name         = "ns3079806"
-
-# Baked into new Zabbix server/proxy containers at creation time so Ansible
-# can manage them immediately - no separate SSH bootstrap step needed.
-ansible_ssh_public_keys = [
-  "ssh-ed25519 AAAA... your-ansible-controller-key",
-]

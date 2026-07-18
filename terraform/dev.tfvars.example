@@ -11,8 +11,3 @@ storage          = "local-lvm"
 # Dev uses single bridge for simplicity
 bridge_main = "vmbr0"
 bridge_iot  = "vmbr0"  # Same as main in dev
-
-# OVH node - central Zabbix server (see terraform/ovh_provider.tf)
-# Leave blank to skip provisioning it from a dev workspace.
-ovh_proxmox_endpoint = ""
-ovh_proxmox_password = ""
