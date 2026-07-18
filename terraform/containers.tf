@@ -60,8 +60,10 @@ resource "proxmox_virtual_environment_container" "homeassistant" {
   unprivileged = true
   start_on_boot = true
 
-  # Device passthrough for Zigbee/Z-Wave
-  # Note: Device passthrough requires manual config or hook scripts
+  # Zigbee/Z-Wave USB stick passthrough
+  device_passthrough {
+    path = "/dev/ttyACM0"
+  }
 
   tags = ["homelab", "smarthome"]
 
@@ -288,6 +290,7 @@ resource "proxmox_virtual_environment_container" "homarr" {
 
   unprivileged = true
   start_on_boot = false
+  started       = false
 
   tags = ["homelab", "dashboard"]
 
@@ -354,6 +357,7 @@ resource "proxmox_virtual_environment_container" "grafana" {
 
   unprivileged = true
   start_on_boot = true
+  started       = false
 
   tags = ["homelab", "monitoring"]
 
