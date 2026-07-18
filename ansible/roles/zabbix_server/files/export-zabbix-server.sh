@@ -21,7 +21,8 @@ DB_USER="${ZABBIX_DB_USER:-zabbix}"
 mkdir -p "$BACKUP_DIR"
 
 echo "==> Dumping PostgreSQL database ($DB_NAME)"
-sudo -u postgres pg_dump "$DB_NAME" | gzip > "$BACKUP_DIR/zabbix-db-$TIMESTAMP.sql.gz"
+# su, not sudo - sudo isn't installed on this minimal Debian image.
+su postgres -c "pg_dump '$DB_NAME'" | gzip > "$BACKUP_DIR/zabbix-db-$TIMESTAMP.sql.gz"
 
 echo "==> Archiving /etc/zabbix and /etc/wireguard"
 tar czf "$BACKUP_DIR/zabbix-config-$TIMESTAMP.tar.gz" \

@@ -11,9 +11,17 @@ variable "proxmox_username" {
 }
 
 variable "proxmox_password" {
-  description = "Proxmox password"
+  description = "Proxmox password (ignored if proxmox_api_token is set)"
   type        = string
   sensitive   = true
+  default     = ""
+}
+
+variable "proxmox_api_token" {
+  description = "Proxmox API token, format \"user@realm!tokenid=uuid\" (preferred over username/password - revocable, least-privilege-able)"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 variable "node_name" {

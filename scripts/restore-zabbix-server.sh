@@ -25,11 +25,12 @@ echo "==> Stopping zabbix-server"
 systemctl stop zabbix-server
 
 echo "==> Dropping and recreating the database"
-sudo -u postgres dropdb "$DB_NAME"
-sudo -u postgres createdb -O "$DB_USER" -E Unicode -T template0 "$DB_NAME"
+# su, not sudo - sudo isn't installed on this minimal Debian image.
+su postgres -c "dropdb '$DB_NAME'"
+su postgres -c "createdb -O '$DB_USER' -E Unicode -T template0 '$DB_NAME'"
 
 echo "==> Restoring the dump"
-gunzip -c "$DB_DUMP" | sudo -u postgres psql "$DB_NAME"
+gunzip -c "$DB_DUMP" | su postgres -c "psql '$DB_NAME'"
 
 if [ -n "$CONFIG_TAR" ]; then
   echo "==> Restoring /etc/wireguard from $CONFIG_TAR"

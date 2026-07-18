@@ -71,6 +71,11 @@ resource "proxmox_virtual_environment_container" "zabbix_server" {
     ignore_changes = [
       initialization,
       disk,
+      # Proxmox doesn't retain a container's source template reference
+      # after creation - terraform import always reads this back as unset,
+      # which the provider otherwise treats as forcing a destroy+recreate
+      # on every subsequent plan.
+      operating_system,
     ]
   }
 }

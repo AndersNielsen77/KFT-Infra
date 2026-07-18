@@ -3,8 +3,11 @@
 
 environment      = "prod"
 proxmox_endpoint = "https://YOUR_PROXMOX_IP:8006"
-proxmox_username = "root@pam"
-proxmox_password = "YOUR_PASSWORD_HERE"
+# Preferred: an API token (pveum user token add root@pam terraform --privsep 0)
+proxmox_api_token = "root@pam!terraform=YOUR_TOKEN_UUID"
+# Fallback if you'd rather use the root password directly:
+# proxmox_username = "root@pam"
+# proxmox_password = "YOUR_PASSWORD_HERE"
 node_name        = "pve"
 storage          = "local-lvm"
 
@@ -14,8 +17,9 @@ bridge_iot  = "vmbr1"
 
 # OVH node - central Zabbix server (see terraform/ovh_provider.tf)
 ovh_proxmox_endpoint = "https://YOUR_OVH_PROXMOX_IP:8006"
-ovh_proxmox_username = "root@pam"
-ovh_proxmox_password = "YOUR_OVH_PASSWORD_HERE"
+ovh_proxmox_api_token = "root@pam!terraform=YOUR_TOKEN_UUID"
+# ovh_proxmox_username = "root@pam"
+# ovh_proxmox_password = "YOUR_OVH_PASSWORD_HERE"
 ovh_node_name         = "ns3079806"
 
 # Baked into new Zabbix server/proxy containers at creation time so Ansible

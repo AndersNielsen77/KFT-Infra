@@ -20,7 +20,14 @@ variable "ovh_proxmox_username" {
 }
 
 variable "ovh_proxmox_password" {
-  description = "OVH Proxmox password"
+  description = "OVH Proxmox password (ignored if ovh_proxmox_api_token is set)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "ovh_proxmox_api_token" {
+  description = "OVH Proxmox API token, format \"user@realm!tokenid=uuid\" (preferred over username/password)"
   type        = string
   sensitive   = true
   default     = ""
@@ -39,11 +46,12 @@ variable "ovh_storage" {
 }
 
 provider "proxmox" {
-  alias    = "ovh"
-  endpoint = var.ovh_proxmox_endpoint
-  username = var.ovh_proxmox_username
-  password = var.ovh_proxmox_password
-  insecure = true
+  alias     = "ovh"
+  endpoint  = var.ovh_proxmox_endpoint
+  api_token = var.ovh_proxmox_api_token != "" ? var.ovh_proxmox_api_token : null
+  username  = var.ovh_proxmox_api_token != "" ? null : var.ovh_proxmox_username
+  password  = var.ovh_proxmox_api_token != "" ? null : var.ovh_proxmox_password
+  insecure  = true
 
   ssh {
     agent    = true
