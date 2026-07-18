@@ -72,6 +72,56 @@ customer, and validate against it first.
 | Restore | `scripts/restore-zabbix-server.sh` |
 | OVH host networking (DNAT) | `ansible/roles/ovh_host_networking/` - runs on the OVH Proxmox host itself, not a container |
 | Reverse proxy vhost | `ansible/roles/zabbix_reverse_proxy/` - runs on the existing `Reverse-Proxy` CT (105) that fronts the other `*.nordspeed.dk` sites |
+| Zabbix agents (monitored hosts) | `scripts/install-zabbix-agent.sh`, `scripts/register-zabbix-hosts.sh` |
+
+## Monitored hosts (agents)
+
+Every running container/VM on both Proxmox hosts, plus the two Proxmox
+hosts themselves, run `zabbix-agent2` in **active** mode (they dial out -
+no inbound port needed anywhere) and are registered with the
+`Linux by Zabbix agent active` template. Local-side hosts are
+`monitored_by` the `zabbix-proxy-local-test` proxy; OVH-side hosts are
+monitored directly by the server, since they're already on the same
+physical host.
+
+Not included: `truenas` (its network interface is administratively down -
+`link_down=1` in its VM config - not something to flip on as a side
+effect of adding monitoring), anything stopped, and the `ihg.nordspeed.dk`
+template container.
+
+`scripts/install-zabbix-agent.sh <server_ip> <hostname>` does the actual
+per-host install/config, and its header comment is the real gotcha
+reference - worth reading before touching any of this again:
+
+- **Zabbix 7.4's repo restructure** (same one documented above) applies
+  to the agent packages too.
+- **Interactive dpkg conffile prompts** hang forever with no TTY attached
+  when upgrading an existing agent install - needs `--force-confold`.
+- **Several containers came with a full 7.2.x agent2 + plugin bundle**
+  (mongodb/mssql/nvidia-gpu/ember-plus/postgresql) from whatever
+  provisioning script built them originally. None of those plugins apply
+  here, and their leftover `.conf` files reference now-purged plugin
+  binaries, which fails agent2's config validation outright with
+  `failed to start plugin process: no such file or directory`.
+- **Several also had the classic `zabbix-agent` (not agent2) already
+  running**, binding port 10050 first and blocking agent2 from starting
+  at all (`bind: address already in use`).
+- **`systemctl enable --now` is a no-op if the service is already
+  running** - which it usually is, right after package install with
+  default config. It does NOT reload config. Always `restart`, not just
+  `enable --now`, after changing `zabbix_agent2.conf`, or the agent keeps
+  reporting under its old default Hostname (`Zabbix server`) forever.
+- **One host (the OVH-side Tailscale container) uses the classic agent**
+  with a `HostnameItem` directive - don't be misled by its startup log
+  warning ("using [Tailscale]") into renaming the Zabbix host to match;
+  that warning is about a specific item value, not the identity the agent
+  actually uses for active-check requests, which is still whatever
+  `Hostname=` says. Confirmed the hard way - renaming it broke active
+  checks (`host [...] not found` in the server log) until reverted.
+
+`scripts/register-zabbix-hosts.sh` records the exact host list from this
+rollout (name, IP, proxy assignment, group) - a working reference to
+copy from for the next batch, not a generic tool.
 
 ## Reaching the frontend
 
