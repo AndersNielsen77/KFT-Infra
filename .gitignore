@@ -19,6 +19,15 @@
 !**/inventory/*.example
 !**/inventory/test/
 !**/inventory/prod/
+# The two negations above only re-include the directory entries themselves -
+# without the two lines below, files placed inside them (real hosts.yml with
+# real IPs/credentials) are NOT actually excluded and can be committed by
+# accident. Keep only .gitkeep tracked; everything else in these two
+# directories stays local-only.
+**/inventory/prod/*
+**/inventory/test/*
+!**/inventory/prod/.gitkeep
+!**/inventory/test/.gitkeep
 **/vault-password.txt
 **/.vault_pass
 

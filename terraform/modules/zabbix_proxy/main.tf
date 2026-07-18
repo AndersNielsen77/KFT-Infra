@@ -17,6 +17,10 @@ resource "proxmox_virtual_environment_container" "proxy" {
         gateway = var.ip_address == "dhcp" ? null : var.gateway
       }
     }
+
+    user_account {
+      keys = var.ansible_ssh_public_keys
+    }
   }
 
   cpu {

@@ -25,7 +25,13 @@ resource "proxmox_virtual_environment_container" "zabbix_server" {
         gateway = "192.168.10.1"
       }
     }
+
+    user_account {
+      keys = var.ansible_ssh_public_keys
+    }
   }
+  # (ansible_ssh_public_keys is the shared root-level variable defined in
+  # variables.tf, also threaded through modules/zabbix_proxy)
 
   cpu {
     cores = 2

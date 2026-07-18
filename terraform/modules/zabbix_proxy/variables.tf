@@ -66,3 +66,9 @@ variable "template_file_id" {
   type        = string
   default     = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
 }
+
+variable "ansible_ssh_public_keys" {
+  description = "SSH public keys baked in at creation so Ansible can manage this container from day one"
+  type        = list(string)
+  default     = []
+}

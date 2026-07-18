@@ -31,6 +31,12 @@
   no_log: true
   block:
     - name: Update Admin's password
+      # NOTE: the user object's password field is called "passwd" (not
+      # "password" - that's only the login-call field name), and changing
+      # your own account's password additionally requires "current_passwd"
+      # or the API rejects the whole call with "unexpected parameter
+      # password". Neither is documented anywhere obvious - found by
+      # reading the actual 7.4 API reference for user.update.
       uri:
         url: "http://localhost/api_jsonrpc.php"
         method: POST
@@ -43,6 +49,12 @@
           method: "user.update"
           params:
             userid: "1"
-            password: "{{ zabbix_admin_password }}"
+            current_passwd: "zabbix"
+            passwd: "{{ zabbix_admin_password }}"
           id: 2
         status_code: 200
+      register: zbx_password_update
+      # The uri module only validates the HTTP status code, which is 200
+      # even for a JSON-RPC-level error - check the actual payload too, or
+      # a rejected call reports "ok" while silently changing nothing.
+      failed_when: "'error' in zbx_password_update.json"

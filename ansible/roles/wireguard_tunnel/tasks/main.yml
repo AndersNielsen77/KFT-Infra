@@ -64,6 +64,29 @@
     mode: '0600'
   notify: Restart wireguard tunnel
 
+- name: Check whether the interface already exists outside systemd's tracking
+  # Can happen if it was first brought up by hand (`wg-quick up`) rather
+  # than via `systemctl start` - the interface is real and working, but
+  # systemd doesn't know it's "active" and will try to start it again,
+  # which wg-quick refuses ("wg0 already exists"), failing this task.
+  command: "ip link show {{ wg_interface }}"
+  register: wg_iface_check
+  changed_when: false
+  failed_when: false
+
+- name: Check whether systemd considers the tunnel active
+  command: "systemctl is-active wg-quick@{{ wg_interface }}"
+  register: wg_service_active
+  changed_when: false
+  failed_when: false
+
+- name: Let systemd adopt an interface it doesn't know about yet
+  when:
+    - wg_iface_check.rc == 0
+    - wg_service_active.stdout != 'active'
+  command: "wg-quick down {{ wg_interface }}"
+  failed_when: false
+
 - name: Enable and start the tunnel
   systemd:
     name: "wg-quick@{{ wg_interface }}"

@@ -29,6 +29,11 @@
     status_code: 200
   register: zbx_admin_login
   no_log: true
+  # A wrong/stale zabbix_admin_password returns HTTP 200 with a JSON-RPC
+  # error body (no .result), which every following task assumes exists -
+  # fail here immediately with a clear message instead of a confusing
+  # "dict has no attribute 'result'" crash three tasks downstream.
+  failed_when: "'error' in zbx_admin_login.json"
 
 - name: Check which of these proxies already exist
   uri:
@@ -49,6 +54,7 @@
     status_code: 200
   register: zbx_existing_proxies
   no_log: true
+  failed_when: "'error' in zbx_existing_proxies.json"
 
 - name: Create any missing proxies
   loop: "{{ zabbix_customer_proxies }}"
@@ -73,4 +79,6 @@
         operating_mode: "{{ 0 if (item.operating_mode | default('active')) == 'active' else 1 }}"
       id: 3
     status_code: 200
+  register: zbx_proxy_create
   no_log: true
+  failed_when: "'error' in zbx_proxy_create.json"

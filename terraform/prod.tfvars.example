@@ -17,3 +17,9 @@ ovh_proxmox_endpoint = "https://YOUR_OVH_PROXMOX_IP:8006"
 ovh_proxmox_username = "root@pam"
 ovh_proxmox_password = "YOUR_OVH_PASSWORD_HERE"
 ovh_node_name         = "ns3079806"
+
+# Baked into new Zabbix server/proxy containers at creation time so Ansible
+# can manage them immediately - no separate SSH bootstrap step needed.
+ansible_ssh_public_keys = [
+  "ssh-ed25519 AAAA... your-ansible-controller-key",
+]

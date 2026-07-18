@@ -25,12 +25,13 @@
 module "zabbix_proxy_local_test" {
   source = "./modules/zabbix_proxy"
 
-  customer_name = "local-test"
-  node_name     = var.node_name # this repo's home-lab node
-  vm_id         = 116
-  storage       = "local-lvm"
-  bridge        = var.bridge_main
-  ip_address    = "dhcp"
+  customer_name           = "local-test"
+  node_name               = var.node_name # this repo's home-lab node
+  vm_id                   = 116
+  storage                 = "local-lvm"
+  bridge                  = var.bridge_main
+  ip_address              = "dhcp"
+  ansible_ssh_public_keys = var.ansible_ssh_public_keys
 }
 
 # Example for a real customer running their own Proxmox node - uncomment,

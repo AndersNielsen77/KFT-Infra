@@ -37,34 +37,37 @@
     state: started
     enabled: yes
 
-- name: Check whether the Zabbix DB role already exists
+- name: PostgreSQL setup (as the postgres system user)
+  # become_method defaults to sudo (repo-wide ansible.cfg setting), but sudo
+  # isn't installed on this minimal Debian image - su is, and is what was
+  # actually used building this by hand, so pin it here rather than adding
+  # a sudo dependency just for this.
   become_user: postgres
-  command: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ zabbix_db_user }}'"
-  register: zbx_role_check
-  changed_when: false
+  become_method: su
+  block:
+    - name: Check whether the Zabbix DB role already exists
+      command: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ zabbix_db_user }}'"
+      register: zbx_role_check
+      changed_when: false
 
-- name: Create the Zabbix DB role
-  when: zbx_role_check.stdout != "1"
-  become_user: postgres
-  command: psql -c "CREATE USER {{ zabbix_db_user }} WITH PASSWORD '{{ zabbix_db_password }}';"
-  no_log: true
+    - name: Create the Zabbix DB role
+      when: zbx_role_check.stdout != "1"
+      command: psql -c "CREATE USER {{ zabbix_db_user }} WITH PASSWORD '{{ zabbix_db_password }}';"
+      no_log: true
 
-- name: Check whether the Zabbix database already exists
-  become_user: postgres
-  command: psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ zabbix_db_name }}'"
-  register: zbx_db_check
-  changed_when: false
+    - name: Check whether the Zabbix database already exists
+      command: psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ zabbix_db_name }}'"
+      register: zbx_db_check
+      changed_when: false
 
-- name: Create the Zabbix database
-  when: zbx_db_check.stdout != "1"
-  become_user: postgres
-  command: createdb -O {{ zabbix_db_user }} -E Unicode -T template0 {{ zabbix_db_name }}
+    - name: Create the Zabbix database
+      when: zbx_db_check.stdout != "1"
+      command: createdb -O {{ zabbix_db_user }} -E Unicode -T template0 {{ zabbix_db_name }}
 
-- name: Check whether the schema is already imported
-  become_user: postgres
-  command: psql -tAc "SELECT to_regclass('public.users')" {{ zabbix_db_name }}
-  register: zbx_schema_check
-  changed_when: false
+    - name: Check whether the schema is already imported
+      command: psql -tAc "SELECT to_regclass('public.users')" {{ zabbix_db_name }}
+      register: zbx_schema_check
+      changed_when: false
 
 - name: Import the Zabbix schema (first run only)
   when: "'users' not in zbx_schema_check.stdout"
@@ -91,6 +94,23 @@
     owner: www-data
     group: www-data
     mode: '0640'
+
+- name: Fix nginx zabbix vhost - ensure all frontend paths point at /ui
+  # Zabbix 7.4 moved the frontend into /usr/share/zabbix/ui/ (older
+  # versions served it directly from /usr/share/zabbix/) - both the `root`
+  # directive AND the three fastcgi_param lines (DOCUMENT_ROOT,
+  # SCRIPT_FILENAME, PATH_TRANSLATED) hardcode this path. If
+  # /etc/nginx/conf.d/zabbix.conf already existed from a prior version's
+  # install, the package's postinst won't overwrite it and this goes stale
+  # silently: "/" keeps 200ing from the distro default site while
+  # /api_jsonrpc.php 404s, which reads like a working frontend until you
+  # actually hit the API. Negative lookahead keeps this idempotent - won't
+  # double up into /ui/ui on a second run.
+  replace:
+    path: /etc/nginx/conf.d/zabbix.conf
+    regexp: '/usr/share/zabbix(?!/ui)'
+    replace: '/usr/share/zabbix/ui'
+  notify: Restart nginx
 
 - name: Fix nginx zabbix vhost - enable the listen directive
   # The packaged template ships `listen 8080` commented out. Left as-is,
