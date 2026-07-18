@@ -82,6 +82,9 @@ cp terraform.tfvars.example terraform.tfvars
 cd ../ansible
 cp inventory/hosts.yml.example inventory/prod/hosts.yml
 # Edit inventory/prod/hosts.yml with your IP addresses
+
+# Install required Ansible collections (community.docker, community.general)
+ansible-galaxy collection install -r requirements.yml
 ```
 
 ### 2. Deploy Infrastructure
